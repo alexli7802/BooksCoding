@@ -9,6 +9,11 @@ package pinscala.c32
  *     2. 'synchronize' -> 'lock issues: deadlock'
  */
 
+/*
+ *  Takeaways:
+ *   - use scala.concurrent.Future[+T] to avoid blocking
+ *   - in testing, we should accept 'blocking', like 'org.scalatest.concurrent.ScalaFutures'
+ * */
 
 object TestApp {
 
@@ -100,30 +105,71 @@ object TestApp {
 	}
 	
 	def test_future4(): Unit = {
-	  val fa = Future { Thread.sleep(4000); 39.7 }
+	  val fa = Future { Thread.sleep(4000); 39.7 / 0 }
 	  val fb = Future { Thread.sleep(6000); 26.8 }
 	  val fc = fa.zip(fb).map(v => v._1 + v._2)
-	  
-//	  val ftot = Future.reduceLeft(List(fa,fb).take(0))(_ + _)
-//	  val ftot = Future.foldLeft(List(fa,fb))(0.0)(_ + _)
+
+/*	  
 	  val fseq = Future.sequence(List(fa,fb,fc))
 
 	  fseq.onComplete {
 	    case Success(tup) => println(tup)
 	    case Failure(e) => e.printStackTrace()
 	  }
+*/
+
+/*
+	  fa.foreach(println)
+*/
 	  
-	  while (!fseq.isCompleted) {
+	  val fd = fa.andThen {
+	    case Success(age) => throw new RuntimeException("BAD!!!")
+	  }.andThen {
+	    case Success(age) => println("check: age=" + age)
+	    case Failure(ex) => ex.printStackTrace()
+	  }.andThen {
+    	case Success(age) => println("check again: age=" + age) 
+    	case Failure(ex) => ex.printStackTrace()
+  	}
+	  
+	  while (!fd.isCompleted) {
 	    Thread.sleep(1000)
 	    println("waiting")
 	  }
-//	  
-//	  println(fseq.value)
+	  println("Future is completed!")
+	}
+	
+	def test_nested_futures(): Unit = {
+	  val incomeTax = Future {
+	    val tax = Future {
+	      Thread.sleep(2000)
+	      val factor = 0.25
+	    }
+	    tax	    
+	  }
+	    
+	  incomeTax.flatten.foreach(println)
+	}
+	
+	def test_await(): Unit = {
+	  val f0 = Future {
+	    Thread.sleep(4000)
+	    23.9
+	  }
+	  
+	  import scala.concurrent.Await
+	  import scala.concurrent.duration.Duration
+	  val f1 = Await.ready(f0, Duration.Inf)
+	  
+	  if (f1.isCompleted) 
+	    println("result is " + f1.value.get.get ) 
+	  else 
+	    println("time-out: still not completed!")
 	}
 	
   def main(args: Array[String]): Unit = {
     
     println("========== Testing examples in chapter-32 ==========")
-    test_future4()
+    test_await()
   }
 }
