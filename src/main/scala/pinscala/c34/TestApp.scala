@@ -13,20 +13,22 @@ import scala.swing.event.ButtonClicked
 
 object TestApp extends SimpleSwingApplication {
   
-  def top = new MainFrame {
-    title = "== c34: GUI Programming =="
-    
-    val btn = new Button { text = "Click me" }
-    val lab = new Label { text = "No button clicks registered" }
-    
-    contents = new BoxPanel(Orientation.Vertical) {
+	val btn = new Button { text = "Click me" }
+	val lab = new Label { text = "No button clicks registered" }
+	val panel = new BoxPanel(Orientation.Vertical) {
       contents += btn
       contents += lab
       border = Swing.EmptyBorder(30, 30, 10, 30)
     }
+
+	// set up main-frame
+  def top = new MainFrame {
+    title = "== c34: GUI Programming =="
+    contents = panel
+    
+    var clckCount = 0
     
     listenTo(btn)
-    var clckCount = 0
     reactions += {
       case ButtonClicked(b) => {
         clckCount += 1
